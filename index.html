@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Daily Task Tracker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: auto;
+      padding-top: 40px;
+    }
+    h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin: 15px 0;
+      font-size: 18px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    .status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>✅ My Daily Tasks</h2>
+  <form id="taskForm">
+    <label><input type="checkbox" name="task1"> Meditate</label>
+    <label><input type="checkbox" name="task2"> Exercise</label>
+    <label><input type="checkbox" name="task3"> Study</label>
+    <button type="submit">Submit</button>
+    <div class="status" id="status"></div>
+  </form>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxDXH1oeXcsQTFBXhjl_E1hw0smlP9oIEUqAR3FTLg82EeweK0zbbGb2wpBYS5NCdpv3A/exec';
+
+    document.getElementById('taskForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const data = {
+        task1: form.get('task1') === 'on',
+        task2: form.get('task2') === 'on',
+        task3: form.get('task3') === 'on'
+      };
+
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Submitting...';
+
+      try {
+        const res = await fetch(scriptURL, {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const text = await res.text();
+        statusEl.textContent = text.includes("Success") ? "✅ Submitted successfully!" : "❌ " + text;
+      } catch (err) {
+        statusEl.textContent = "❌ Network Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
