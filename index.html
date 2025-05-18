@@ -2,67 +2,309 @@
 <html>
 <head>
   <title>Daily Task Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"> <!-- Make the page responsive -->
   <style>
     body {
       font-family: sans-serif;
       max-width: 500px;
       margin: auto;
       padding-top: 40px;
-    }
-    h2 {
       text-align: center;
+      background-color: #121212; /* Dark background */
+      color: white; /* White text */
+      -webkit-filter: invert(0) contrast(1); /* Prevent browser night mode from affecting the page */
+      filter: invert(0) contrast(1); /* Prevent browser night mode from affecting the page */
+    }
+    .hidden {
+      display: none;
     }
     label {
       display: block;
       margin: 15px 0;
       font-size: 18px;
+      text-align: left;
+      color: white; /* White text for labels */
     }
     button {
       padding: 10px 20px;
       margin-top: 20px;
       font-size: 16px;
+      cursor: pointer;
+      background-color: #444444; /* Darker gray for buttons */
+      color: white; /* White text on button */
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #666666; /* Darker gray on hover */
     }
     .status {
       margin-top: 20px;
       font-weight: bold;
+      color: white; /* White text for status */
     }
+    input[type="text"], input[type="password"], select {
+      padding: 8px;
+      width: 80%;
+      font-size: 16px;
+      background-color: #333333; /* Dark input background */
+      color: white; /* White text in input */
+      border: 1px solid #555555; /* Light border */
+      border-radius: 5px;
+    }
+    input[type="text"]:focus, input[type="password"]:focus, select:focus {
+      outline: none;
+      border-color: #555555; /* Focus border color */
+    }
+    #clock, #dateDisplay {
+      margin: 10px 0;
+      font-weight: bold;
+      font-size: 18px;
+      color: white; /* White text for clock and date */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #clock img, #dateDisplay img {
+      margin-right: 10px;
+    }
+
+    /* For smaller screens */
+    @media (max-width: 600px) {
+      body {
+        padding-top: 20px; /* Less top padding on small screens */
+      }
+      h2 {
+        font-size: 22px; /* Larger font size for headings on small screens */
+      }
+      input[type="text"], input[type="password"], select {
+        width: 70%; /* Reduced width for inputs and selects on mobile */
+      }
+      button {
+        width: 70%; /* Reduced width for buttons on mobile */
+      }
+    }
+
+    /* Adjusting the icon and label alignment */
+    .task-label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start; /* Left alignment for text */
+      margin-bottom: 10px;
+    }
+
+    .task-label img {
+      margin-right: 10px;
+    }
+
   </style>
 </head>
 <body>
-  <h2>✅ My Daily Tasks</h2>
-  <form id="taskForm">
-    <label><input type="checkbox" name="task1"> M</label>
-    <label><input type="checkbox" name="task2"> E</label>
-    <label><input type="checkbox" name="task3"> Study</label>
-    <button type="submit">Submit</button>
-    <div class="status" id="status"></div>
-  </form>
+
+  <!-- Login Form -->
+  <div id="loginPage">
+    <h2><img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/lock.svg" width="24" height="24" alt="Lock"> Login</h2>
+    <input type="text" id="username" placeholder="Username" required><br><br>
+    <input type="password" id="password" placeholder="Password" required><br><br>
+    <button onclick="login()">Login</button>
+    <div class="status" id="loginStatus"></div>
+  </div>
+
+  <!-- Task Tracker Form -->
+  <div id="taskPage" class="hidden">
+    <div id="dateDisplay">
+      <img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/calendar.svg" width="24" height="24" alt="Calendar">
+      <span id="dateText"></span>
+    </div>
+    <div id="clock">
+      <img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/clock.svg" width="24" height="24" alt="Clock">
+      <span id="timeText"></span>
+    </div>
+    <h2 id="welcomeText"></h2>
+    <!-- History Button -->
+    <button onclick="window.location.href='history.html'">History</button>
+    <form id="taskForm">
+      <div class="task-label">
+        <img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/video.svg" width="24" height="24" alt="Reels Icon">
+        <label for="reelsTime">How Many minutes lost due to Reels?</label>
+      </div>
+      <select id="reelsTime" name="reelsTime">
+        <option value="0">0 Minutes</option>
+        <option value="1">5 Minutes</option>
+        <option value="2">15 Minutes</option>
+        <option value="3">30 Minutes</option>
+        <option value="4">1 Hour</option>
+        <option value="5">1.5 Hours</option>
+        <option value="6">2 Hours</option>
+        <option value="7">3 Hours</option>
+        <option value="8">More than 3 Hours</option>
+      </select>
+
+      <div class="task-label">
+        <img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/eye-off.svg" width="24" height="24" alt="Porn Icon">
+        <label for="pornTime">How Many minutes lost due to Porn?</label>
+      </div>
+      <select id="pornTime" name="pornTime">
+        <option value="0">0 Minutes</option>
+        <option value="1">5 Minutes</option>
+        <option value="2">15 Minutes</option>
+        <option value="3">30 Minutes</option>
+        <option value="4">1 Hour</option>
+        <option value="5">1.5 Hours</option>
+        <option value="6">2 Hours</option>
+        <option value="7">3 Hours</option>
+        <option value="8">More than 3 Hours</option>
+      </select>
+
+      <div class="task-label">
+        <img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/heart.svg" width="24" height="24" alt="Masturbation Icon">
+        <label for="masturbation">Masturbation</label>
+      </div>
+      <select id="masturbation" name="masturbation">
+        <option value="1">Yes</option>
+        <option value="0">No</option>
+      </select>
+
+      <div class="task-label">
+        <img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/book.svg" width="24" height="24" alt="Pages Read Icon">
+        <label for="pagesRead">How many pages did you read?</label>
+      </div>
+      <select id="pagesRead" name="pagesRead">
+        <option value="1">1 Page</option>
+        <option value="2">2 Pages</option>
+        <option value="3">3 Pages</option>
+        <option value="4">4 Pages</option>
+        <option value="5">5 Pages</option>
+        <option value="6">More than 5 Pages</option>
+      </select>
+
+      <div class="task-label">
+        <img src="https://raw.githubusercontent.com/lucide-icons/lucide/master/icons/laptop.svg" width="24" height="24" alt="Learning Icon">
+        <label for="learningNew">Did you spend time on learning new skill?</label>
+      </div>
+      <select id="learningNew" name="learningNew">
+        <option value="1">Yes</option>
+        <option value="0">No</option>
+      </select>
+
+      <button type="submit">Submit</button>
+      <div class="status" id="status"></div>
+    </form>
+    <button onclick="logout()">Logout</button>
+  </div>
+
   <script>
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbxDXH1oeXcsQTFBXhjl_E1hw0smlP9oIEUqAR3FTLg82EeweK0zbbGb2wpBYS5NCdpv3A/exec';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyn5k4-XltS5_2zAuRvYKHi5lnlm8SQYrWFZVNF8waHZ1w3t8UMZDl3bQYJ9vL24eYe/exec';
+    const validUsers = {
+      'Nabil': '1234',
+      'Tanvir': 'aaaa'
+    };
 
-  document.getElementById('taskForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
+    function login() {
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value.trim();
+      const loginStatus = document.getElementById('loginStatus');
 
-    const statusEl = document.getElementById('status');
-    statusEl.textContent = 'Submitting...';
-
-    try {
-      const res = await fetch(scriptURL, {
-        method: 'POST',
-        body: form
-      });
-
-      const text = await res.text();
-      statusEl.textContent = text.includes("Success")
-        ? "✅ Submitted successfully!"
-        : "❌ " + text;
-    } catch (err) {
-      statusEl.textContent = "❌ Network Error: " + err.message;
+      if (validUsers[user] && validUsers[user] === pass) {
+        localStorage.setItem('username', user);
+        localStorage.setItem('hasSubmitted', 'false');
+        loginStatus.textContent = '✅ Login successful!';
+        showTaskPage();
+      } else {
+        loginStatus.textContent = '❌ Invalid credentials';
+      }
     }
-  });
-</script>
 
-  
+    function logout() {
+      localStorage.clear();
+      document.getElementById('taskPage').classList.add('hidden');
+      document.getElementById('loginPage').classList.remove('hidden');
+    }
+
+    function showTaskPage() {
+      const username = localStorage.getItem('username');
+      if (username) {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('taskPage').classList.remove('hidden');
+        document.getElementById('welcomeText').textContent =
+          `Welcome ${username}, what tasks did you successfully complete today?`;
+      }
+    }
+
+    window.onload = () => {
+      if (localStorage.getItem('username')) {
+        showTaskPage();
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+    };
+
+    function updateClock() {
+      const now = new Date();
+
+      const timeOptions = {
+        timeZone: 'Asia/Dhaka',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      };
+
+      const dateOptions = {
+        timeZone: 'Asia/Dhaka',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      };
+
+      document.getElementById('timeText').textContent = now.toLocaleTimeString('en-US', timeOptions) + ' (BD Time)';
+      document.getElementById('dateText').textContent = now.toLocaleDateString('en-US', dateOptions);
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const alreadySubmitted = localStorage.getItem('hasSubmitted') === 'true';
+      if (alreadySubmitted) {
+        document.getElementById('status').textContent = '❌ You have already submitted today.';
+        return;
+      }
+
+      const form = new FormData(e.target);
+      const data = new URLSearchParams();
+
+      data.append('task1', form.get('reelsTime'));
+      data.append('task2', form.get('pornTime'));
+      data.append('task3', form.get('masturbation'));
+      data.append('task4', form.get('pagesRead'));
+      data.append('task5', form.get('learningNew'));
+      data.append('user', localStorage.getItem('username') || 'Unknown');
+
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Submitting...';
+
+      try {
+        const res = await fetch(scriptURL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: data.toString()
+        });
+
+        const text = await res.text();
+        if (text.includes("Success")) {
+          localStorage.setItem('hasSubmitted', 'true');
+          statusEl.textContent = "✅ Submitted successfully!";
+        } else {
+          statusEl.textContent = "❌ " + text;
+        }
+      } catch (err) {
+        statusEl.textContent = "❌ Network Error: " + err.message;
+      }
+    });
+  </script>
+
 </body>
 </html>
