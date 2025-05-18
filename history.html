@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Task History</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 16px;
+      margin: 0;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    h3 {
+      font-size: 1.3rem;
+      margin: 20px 0 10px;
+    }
+
+    .section {
+      margin-top: 30px;
+    }
+
+    .quote {
+      font-style: italic;
+      margin-bottom: 15px;
+      color: #aaa;
+      font-size: 0.95rem;
+    }
+
+    #globalChart {
+      max-width: 100%;
+    }
+
+    .navigation {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .nav-button {
+      padding: 6px 16px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #333;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-button:disabled {
+      background-color: #555;
+      cursor: not-allowed;
+    }
+
+    #loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 50px;
+    }
+
+    .loader {
+      border: 6px solid #333;
+      border-top: 6px solid #0c758f;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .icon-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    .icon-label img,
+    .nav-button img,
+    h2 img {
+      width: 22px;
+      height: 22px;
+      filter: brightness(0) invert(1);
+    }
+
+    ul.leaderboard {
+      list-style: none;
+      padding: 0;
+      margin: 5px 0 20px;
+    }
+
+    ul.leaderboard li {
+      margin: 2px 0;
+    }
+  </style>
+</head>
+<body>
+  <h2><img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/calendar-days.svg" alt="calendar" /> Task History</h2>
+  <div class="quote" id="quote">Loading quote...</div>
+
+  <div id="loading"><div class="loader"></div></div>
+
+  <div class="section" style="display:none;" id="chartSection">
+    <div id="globalChart"></div>
+    <div class="navigation">
+      <button class="nav-button" id="prevBtn"><img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chevron-left.svg" alt="left" /> Prev</button>
+      <button class="nav-button" id="nextBtn">Next <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chevron-right.svg" alt="right" /></button>
+    </div>
+
+    <div class="section" id="leaderboard">
+      <h3><img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/trophy.svg" alt="trophy" /> Leaderboards</h3>
+
+      <div class="icon-label"><img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/sun.svg" alt="sun" /> Daily Winner (Yesterday)</div>
+      <ul id="dailyWinnerList" class="leaderboard"></ul>
+
+      <div class="icon-label"><img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/activity.svg" alt="chart" /> Weekly Sigma</div>
+      <ul id="weeklySigmaList" class="leaderboard"></ul>
+
+      <div class="icon-label"><img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/calendar.svg" alt="calendar" /> Monthly Champion</div>
+      <ul id="monthlyChampionList" class="leaderboard"></ul>
+
+      <div class="icon-label"><img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/award.svg" alt="award" /> Total Aura</div>
+      <ul id="totalAuraList" class="leaderboard"></ul>
+    </div>
+  </div>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbyn5k4-XltS5_2zAuRvYKHi5lnlm8SQYrWFZVNF8waHZ1w3t8UMZDl3bQYJ9vL24eYe/exec";
+    let chart;
+    let allDates = [];
+    let labelMap = {};
+    let dataMap = {};
+    let currentPage = 0;
+    const PAGE_SIZE = 7;
+
+    async function fetchQuote() {
+      try {
+        const res = await fetch("https://api.quotable.io/random");
+        const data = await res.json();
+        document.getElementById("quote").textContent = `"${data.content}" — ${data.author}`;
+      } catch {
+        document.getElementById("quote").textContent = "Keep going, every day counts!";
+      }
+    }
+
+    async function loadData() {
+      const res = await fetch(scriptURL);
+      const rawData = await res.json();
+
+      const filtered = rawData
+        .map(r => ({
+          user: String(r.Username || "").trim(),
+          date: r.Date ? new Date(r.Date).toISOString().split("T")[0] : null,
+          day: r.Day || "",
+          score: parseInt(r.Score) || 0
+        }))
+        .filter(r => r.user && r.date && r.day && !isNaN(r.score));
+
+      updateLeaderboards(filtered);
+
+      if (filtered.length >= 7) {
+        buildChart(filtered);
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("chartSection").style.display = "block";
+        updateChart();
+      }
+    }
+
+    function buildChart(filtered) {
+      dataMap = {};
+      labelMap = {};
+
+      filtered.forEach(row => {
+        if (!dataMap[row.date]) dataMap[row.date] = [];
+        dataMap[row.date].push({ user: row.user, score: row.score });
+        const d = new Date(row.date);
+        const day = row.day;
+        const dateStr = `${d.getDate()}-${d.toLocaleString('default', { month: 'short' })}-(${day})`;
+        labelMap[row.date] = dateStr;
+      });
+
+      allDates = Object.keys(dataMap).sort().reverse();
+    }
+
+    function updateChart() {
+      const start = currentPage * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      const pageDates = allDates.slice(start, end);
+      const pageLabels = pageDates.map(d => labelMap[d]);
+
+      const users = [...new Set(Object.values(dataMap).flat().map(r => r.user))];
+      const colorMap = { "Tanvir": "#513fae", "Nabil": "#0c758f" };
+
+      const series = users.map(user => ({
+        name: user,
+        data: pageDates.map(date => {
+          const userEntry = dataMap[date]?.find(u => u.user === user);
+          return userEntry ? userEntry.score : 0;
+        })
+      }));
+
+      const options = {
+        chart: { type: 'bar', height: 400, stacked: false, toolbar: { show: false } },
+        series,
+        xaxis: {
+          categories: pageLabels,
+          labels: {
+            style: {
+              colors: pageLabels.map(label =>
+                label.toLowerCase().includes('fri') ? '#ff4d4d' : '#ccc'
+              )
+            },
+            rotate: -45
+          }
+        },
+        yaxis: { max: 100, labels: { style: { colors: '#ccc' } } },
+        plotOptions: {
+          bar: { borderRadius: 6, columnWidth: '40%', endingShape: 'rounded' }
+        },
+        fill: { opacity: 1, colors: users.map(u => colorMap[u] || '#666') },
+        legend: { labels: { colors: '#ccc' } },
+        dataLabels: { enabled: false },
+        tooltip: { theme: 'dark' }
+      };
+
+      if (chart) {
+        chart.updateOptions(options);
+      } else {
+        chart = new ApexCharts(document.querySelector("#globalChart"), options);
+        chart.render();
+      }
+
+      document.getElementById("prevBtn").disabled = currentPage === 0;
+      document.getElementById("nextBtn").disabled = end >= allDates.length;
+    }
+
+    function updateLeaderboards(filtered) {
+      const leaderboard = { daily: {}, weekly: {}, monthly: {}, total: {} };
+
+      const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+
+      // Normalize date function to clear time
+      function normalizeDate(d) {
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+      const normalizedNow = normalizeDate(now);
+      const normalizedYesterday = normalizeDate(yesterday);
+
+      // Find last Friday on or before today to include Saturday
+      let lastFriday = new Date(normalizedNow);
+      const day = lastFriday.getDay();
+      if (day !== 5) {
+        // subtract days to last Friday (5)
+        lastFriday.setDate(lastFriday.getDate() - ((day + 2) % 7));
+      }
+
+      const month = now.getMonth();
+      const year = now.getFullYear();
+
+      filtered.forEach(r => {
+        const d = normalizeDate(new Date(r.date));
+        const user = r.user;
+        const score = r.score;
+
+        leaderboard.total[user] = (leaderboard.total[user] || 0) + score;
+
+        if (d.getMonth() === month && d.getFullYear() === year)
+          leaderboard.monthly[user] = (leaderboard.monthly[user] || 0) + score;
+
+        // Weekly sum from last Friday through today (inclusive),
+        // so it includes Saturday after Friday
+        if (d >= lastFriday && d <= normalizedNow)
+          leaderboard.weekly[user] = (leaderboard.weekly[user] || 0) + score;
+
+        if (d.getTime() === normalizedYesterday.getTime())
+          leaderboard.daily[user] = (leaderboard.daily[user] || 0) + score;
+      });
+
+      function renderBoard(obj, id) {
+        const sorted = Object.entries(obj).sort((a, b) => b[1] - a[1]);
+        const ul = document.getElementById(id);
+        ul.innerHTML = '';
+        sorted.forEach(([u, s], i) => {
+          const li = document.createElement('li');
+          li.textContent = `${i + 1}. ${u}: ${s}`;
+          ul.appendChild(li);
+        });
+      }
+
+      renderBoard(leaderboard.daily, 'dailyWinnerList');
+      renderBoard(leaderboard.weekly, 'weeklySigmaList');
+      renderBoard(leaderboard.monthly, 'monthlyChampionList');
+      renderBoard(leaderboard.total, 'totalAuraList');
+    }
+
+    document.getElementById("prevBtn").onclick = () => {
+      if (currentPage > 0) {
+        currentPage--;
+        updateChart();
+      }
+    };
+
+    document.getElementById("nextBtn").onclick = () => {
+      if ((currentPage + 1) * PAGE_SIZE < allDates.length) {
+        currentPage++;
+        updateChart();
+      }
+    };
+
+    fetchQuote();
+    loadData();
+  </script>
+</body>
+</html>
